@@ -1,0 +1,122 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+    <title>Eye Tracking Study</title>
+    <script src="https://webgazer.cs.brown.edu/webgazer.js"></script>
+    <style>
+        body {
+            margin: 0;
+            background: #000;
+            color: white;
+            font-family: sans-serif;
+            overflow: hidden;
+        }
+
+        #container {
+            position: absolute;
+            width: 100vw;
+            height: 100vh;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+        }
+
+        video {
+            width: 1280px;
+            height: 720px;
+            background: #222;
+        }
+
+        .ui {
+            position: fixed;
+            top: 10px;
+            left: 10px;
+            background: rgba(0, 0, 0, 0.8);
+            padding: 15px;
+            border-radius: 10px;
+            z-index: 1000;
+            border: 1px solid #444;
+        }
+
+        button {
+            padding: 12px;
+            margin: 5px;
+            cursor: pointer;
+            font-weight: bold;
+            background: #27ae60;
+            color: white;
+            border: none;
+            border-radius: 5px;
+        }
+
+        button:disabled {
+            background: #555;
+        }
+    </style>
+</head>
+
+<body>
+
+    <div class="ui">
+        <div id="status" style="color: #f1c40f; margin-bottom: 10px;">Status: Kamera Mati</div>
+        <button onclick="initCam()">1. Aktifkan Kamera</button>
+        <button id="btnPlay" onclick="startRec()" disabled>2. Mulai Video & Rekam</button>
+        <button id="btnSave" onclick="saveData()" disabled>3. Kirim ke Sheets</button>
+    </div>
+
+    <div id="container">
+        <video id="vidPlayer">
+            <source src="https://www.w3schools.com/html/mov_bbb.mp4" type="video/mp4">
+        </video>
+    </div>
+
+    <script>
+        let logs = [];
+        let isRecording = false;
+        const URL_GAS = "MASUKKAN_URL_WEB_APP_DISINI"; // Ganti dengan URL /exec Anda
+
+        async function initCam() {
+            document.getElementById('status').innerText = "Meminta Izin...";
+            webgazer.setGazeListener((data, time) => {
+                if (data && isRecording) {
+                    logs.push([new Date().toISOString(), Math.round(data.x), Math.round(data.y)]);
+                }
+            }).begin();
+
+            webgazer.showVideoPreview(true).showPredictionPoints(true);
+
+            let check = setInterval(() => {
+                if (webgazer.isReady()) {
+                    document.getElementById('status').innerText = "Status: KAMERA AKTIF";
+                    document.getElementById('btnPlay').disabled = false;
+                    clearInterval(check);
+                }
+            }, 1000);
+        }
+
+        function startRec() {
+            isRecording = true;
+            document.getElementById('vidPlayer').play();
+            document.getElementById('btnSave').disabled = false;
+            document.getElementById('status').innerText = "Status: SEDANG MEREKAM...";
+        }
+
+        async function saveData() {
+            isRecording = false;
+            document.getElementById('vidPlayer').pause();
+            document.getElementById('status').innerText = "Mengirim data...";
+
+            await fetch(URL_GAS, {
+                method: "POST",
+                body: JSON.stringify(logs)
+            });
+
+            alert("Data Berhasil Terkirim ke Google Sheets!");
+            location.reload();
+        }
+    </script>
+</body>
+
+</html>
